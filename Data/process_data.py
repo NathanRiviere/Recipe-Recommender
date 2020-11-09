@@ -4,6 +4,17 @@ import pickle
 import operator
 import numpy as np
 
+
+class Bundle:
+    def __init__(self, user_index_map, recipe_index_map):
+        self.user_index_map = user_index_map
+        self.recipe_index_map = recipe_index_map
+    
+    def serialize(self, file_name):
+        with open(file_name, 'wb') as f:
+            pickle.dump(self, f)
+        
+
 ###########################################    CONSTANTS   #####################################################
 ordered_feature_list = {}
 ordered_feature_list["Cooking"] = [
@@ -97,14 +108,33 @@ def get_ingredient_map():
 def get_recipe_id_map():
     recipe_ids = {}
     with open('condensed-data_interaction.csv', 'r') as f:
-        line = f.readline()
-        recipe_id = (line.split(','))[1]
-        if recipe_id not in recipe_ids:
-            recipe_ids[recipe_id] = 1
-    return recipe_ids
+        index = 0
+        while(True):
+            line = f.readline()
+            if line == '':
+                return recipe_ids
+            recipe_id = (line.split(','))[1]
+            if recipe_id not in recipe_ids:
+                recipe_ids[recipe_id] = index
+                index += 1
 
+def get_user_index_map():
+    user_id_index_map = {}
+    index = 0
+    with open('condensed-data_interaction.csv', 'r') as f:
+        while(True):
+            interaction = f.readline()
+            if interaction == '':
+                return user_id_index_map
+            user_id = (interaction.split(','))[0]
+            if user_id not in user_id_index_map:
+                user_id_index_map[user_id] = index
+                index += 1
+
+# Globals
 ingredient_map = get_ingredient_map()
-recipe_ids = get_recipe_id_map()
+recipe_index_map = get_recipe_id_map()
+user_index_map = get_user_index_map()
 
 bad_ingredients = [
     'white', 'water', 'fryer', 'sauce', 
@@ -401,9 +431,30 @@ def get_num_of_recipes():
                 recipes[recipe_id] = 1
     return len(recipes)
 
+
 ###########################################    MAIN FUNCTIONS   #####################################################
 def create_A():
-    return []
+    try:
+        users = user_index_map
+        recipes = recipe_index_map
+        A_row_num = len(users)
+        A_column_num = len(recipes)
+        A = np.zeros((A_row_num, A_column_num))
+        with open('condensed-data_interaction.csv', 'r') as f:
+            while(True):
+                interaction = f.readline()
+                if interaction == '':
+                    break
+                fields = interaction.split(',')
+                user_id = fields[0]
+                recipe_id = fields[1]
+                A[users[user_id], recipes[recipe_id]] = fields[2]
+        save_file = open("A.npy", 'wb')
+        np.save(save_file, A)
+        save_file.close()
+    except Exception as e:
+        print("Error occured in create_A ", str(e))
+    
 
 def create_R():
     R_columns_num = get_num_of_recipes()
@@ -436,21 +487,31 @@ def create_R():
 ###########################################    TEST FUNCTIONS   #####################################################
 
 def run_tests():
-    with open('test_data.csv', encoding='utf-8' ,newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        column_headers = next(reader)
-        for recipe in reader:
-            v1 = extract_nutrition(recipe[column_headers.index('nutritions')])
-            print(v1)
-        exit()
     return 
 
-#TODO: 
-# 1) create R
-# 2) create A
 
-#run_tests()
-#create_R()
-create_A()
-#condense_ingredients()
-#condense_users_and_recipes()
+###########################################    ENTRY POINTS   #####################################################
+
+test = True
+condense = False
+create_matrices = False
+
+if condense:
+    condense_ingredients()
+    condense_users_and_recipes()
+if create_matrices:
+    create_R()
+    create_A()
+    bundle = Bundle(user_index_map, recipe_index_map)
+    bundle.serialize('index_maps.pickle')
+if test:
+    run_tests()
+
+
+'''
+How to load the dicts that map user/recipe id to the index of that user/recipe in a matrix
+with open('index_maps.pickle', 'rb') as f:
+    bundle = pickle.load(f)
+    users = bundle.user_index_map
+    recipes = bundle.recipe_index_map
+'''
