@@ -100,14 +100,14 @@ equipment_list = [
 ]
 
 def get_ingredient_map():
-    pickle_file = open('ingred_to_index.pkl', 'rb')
+    pickle_file = open('generated-results/ingredient_to_index.pickle', 'rb')
     ingredients = pickle.load(pickle_file)
     pickle_file.close()
     return ingredients
 
 def get_recipe_id_map():
     recipe_ids = {}
-    with open('condensed-data_interaction.csv', 'r') as f:
+    with open('datasets/condensed-data_interaction.csv', 'r') as f:
         index = 0
         while(True):
             line = f.readline()
@@ -121,7 +121,7 @@ def get_recipe_id_map():
 def get_user_index_map():
     user_id_index_map = {}
     index = 0
-    with open('condensed-data_interaction.csv', 'r') as f:
+    with open('datasets/condensed-data_interaction.csv', 'r') as f:
         while(True):
             interaction = f.readline()
             if interaction == '':
@@ -132,7 +132,6 @@ def get_user_index_map():
                 index += 1
 
 # Globals
-ingredient_map = get_ingredient_map()
 recipe_index_map = get_recipe_id_map()
 user_index_map = get_user_index_map()
 
@@ -155,13 +154,13 @@ def condense_ingredients():
 
     categories = {}
 
-    food_data = open('generic-food.csv', encoding='utf-8', newline='')
+    food_data = open('datasets/generic-food.csv', encoding='utf-8', newline='')
     reader = csv.reader(food_data)
     columns = next(reader)
     for food in reader:
         categories[food[columns.index("FOOD NAME")].lower()] = 1 
 
-    with open('core-data_recipe.csv', encoding='utf-8' , newline='') as csvfile:
+    with open('datasets/core-data_recipe.csv', encoding='utf-8' , newline='') as csvfile:
         reader = csv.reader(csvfile)
         column_headers = next(reader)
         try:
@@ -205,14 +204,14 @@ def condense_ingredients():
             final_categories[i] = index
             index += 1
     
-    output_file = open("ingred_to_index.pkl", 'wb')
+    output_file = open("generated-results/ingredient_to_index.pickle", 'wb')
     pickle.dump(final_categories, output_file)
     return
 
 
 # Result: condensed-data_interaction.csv which contains 10000 users and 45000 recipes
 def condense_users_and_recipes():
-    with open('raw-data_interaction.csv', encoding='utf-8' ,newline='') as csvfile:
+    with open('datasets/raw-data_interaction.csv', encoding='utf-8' ,newline='') as csvfile:
         reader = csv.reader(csvfile)
         column_headers = next(reader)
         
@@ -233,7 +232,7 @@ def condense_users_and_recipes():
         column_headers = next(reader)
 
         # Write all user-recipe interactions for every recipe a user in the top 10000 most active has rated
-        with open('condensed-data_interaction.csv', 'w', newline='') as condensed_csvfile:
+        with open('datasets/condensed-data_interaction.csv', 'w', newline='') as condensed_csvfile:
             count = 0
             for interaction in reader:
                 if count % 500 == 0:
@@ -323,7 +322,8 @@ def instruction_extract(directions, is_negative_feature):
     pattern = re.compile(r'\..*?\}')
     match = re.search(pattern, directions)
     if match is None:
-        print("match is none")
+        pattern = re.compile(r'm\\n.*')
+        match = re.search(pattern, directions)
     try:
         instructions = (match[0].replace('.', '\\n')).split('\\n')
         if is_negative_feature:
@@ -421,7 +421,7 @@ def get_num_of_features():
 
 def get_num_of_recipes():
     recipes = {}
-    with open('condensed-data_interaction.csv', encoding='utf-8', newline='') as r:
+    with open('datasets/condensed-data_interaction.csv', encoding='utf-8', newline='') as r:
         while(True):
             line = r.readline()
             if line == '':
@@ -440,7 +440,7 @@ def create_A():
         A_row_num = len(users)
         A_column_num = len(recipes)
         A = np.zeros((A_row_num, A_column_num))
-        with open('condensed-data_interaction.csv', 'r') as f:
+        with open('datasets/condensed-data_interaction.csv', 'r') as f:
             while(True):
                 interaction = f.readline()
                 if interaction == '':
@@ -449,9 +449,10 @@ def create_A():
                 user_id = fields[0]
                 recipe_id = fields[1]
                 A[users[user_id], recipes[recipe_id]] = fields[2]
-        save_file = open("A.npy", 'wb')
+        save_file = open("generated-results/user-rating_matrix.npy", 'wb')
         np.save(save_file, A)
         save_file.close()
+        print("Finished generating user-rating matrix")
     except Exception as e:
         print("Error occured in create_A ", str(e))
     
@@ -464,22 +465,22 @@ def create_R():
     # Make sure we know which column is which recipe in R
     R_id_index_map = {}
     index = 0
-    with open('core-data_recipe.csv', encoding='utf-8' ,newline='') as recipe_data:
+    with open('datasets/core-data_recipe.csv', encoding='utf-8' ,newline='') as recipe_data:
         reader = csv.reader(recipe_data)
         column_headers = next(reader)
         try: 
             for recipe in reader:
-                if recipe[column_headers.index('recipe_id')] not in recipe_ids:
+                if recipe[column_headers.index('recipe_id')] not in recipe_index_map:
                     continue
 
                 R_id_index_map[recipe[column_headers.index("recipe_id")]] = index
                 recipe_map_vec = extract_features(recipe[column_headers.index('ingredients')], recipe[column_headers.index('cooking_directions')], recipe[column_headers.index('nutritions')])
                 R[:, index] = np.asarray(recipe_map_vec)
                 index += 1            
-            r_file = open("R.npy", 'wb')
+            r_file = open("generated-results/Recipe-feature_map.npy", 'wb')
             np.save(r_file, R)
             r_file.close()
-            print("Finished creating and saving R")
+            print("Finished generating Recipe-feature map")
             print("Size of R is " + str(R.shape))
         except Exception as e:
             print("In create R, " + str(e))
@@ -492,18 +493,19 @@ def run_tests():
 
 ###########################################    ENTRY POINTS   #####################################################
 
-test = True
 condense = False
-create_matrices = False
+create_matrices = True
+test = True
 
 if condense:
     condense_ingredients()
     condense_users_and_recipes()
+ingredient_map = get_ingredient_map()
 if create_matrices:
     create_R()
-    create_A()
-    bundle = Bundle(user_index_map, recipe_index_map)
-    bundle.serialize('index_maps.pickle')
+    #create_A()
+    #bundle = Bundle(user_index_map, recipe_index_map)
+    #bundle.serialize('generated-results/index_maps.pickle')
 if test:
     run_tests()
 
