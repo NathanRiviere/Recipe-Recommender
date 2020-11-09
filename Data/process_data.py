@@ -494,8 +494,8 @@ def run_tests():
 ###########################################    ENTRY POINTS   #####################################################
 
 condense = False
-create_matrices = True
-test = True
+create_matrices = False
+test = False
 
 if condense:
     condense_ingredients()
@@ -503,9 +503,9 @@ if condense:
 ingredient_map = get_ingredient_map()
 if create_matrices:
     create_R()
-    #create_A()
-    #bundle = Bundle(user_index_map, recipe_index_map)
-    #bundle.serialize('generated-results/index_maps.pickle')
+    create_A()
+    bundle = Bundle(user_index_map, recipe_index_map)
+    bundle.serialize('generated-results/index_maps.pickle')
 if test:
     run_tests()
 
