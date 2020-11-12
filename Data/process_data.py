@@ -3,19 +3,31 @@ import re
 import pickle
 import operator
 import numpy as np
+from itertools import combinations
+
+DEBUG = False
+
+debug_prefix = './Recipe-Recommender/Data/' if DEBUG else ''
 
 
 class Bundle:
     def __init__(self, user_index_map, recipe_index_map):
         self.user_index_map = user_index_map
         self.recipe_index_map = recipe_index_map
-    
+        
     def serialize(self, file_name):
         with open(file_name, 'wb') as f:
             pickle.dump(self, f)
-        
 
-###########################################    CONSTANTS   #####################################################
+class Logger:
+    def __init__(self, filename):
+        self._file = open(debug_prefix + 'output/' + filename, 'w')
+
+    def log(self, arg):
+        self._file.write(arg)
+        self._file.write('\n')
+
+###########################################    GLOBALS   #####################################################
 ordered_feature_list = {}
 ordered_feature_list["Cooking"] = [
     'LongPrepTime',
@@ -28,17 +40,18 @@ ordered_feature_list["Cooking"] = [
     'FewEquipment',
 ]
 
-ordered_feature_list["Ingredients"] = [
-    'FewIngredients',
-    'ManyIngredients',
-]
-
 ordered_feature_list["Nutrition"] = [
     'carbohydrates',
     'sugars',
     'calories',
     'fat',
     'protein',
+]
+
+ordered_feature_list["Ingredients"] = [
+    'FewIngredients',
+    'ManyIngredients',
+    'Ingredients'
 ]
 
 feature_extractor = {}
@@ -57,6 +70,7 @@ feature_extractor['sugars'] = lambda recipe: nutrition_extract(recipe, 'sugars')
 feature_extractor['calories'] = lambda recipe: nutrition_extract(recipe, 'calories')
 feature_extractor['fat'] = lambda recipe: nutrition_extract(recipe, 'fat')
 feature_extractor['protein'] = lambda recipe: nutrition_extract(recipe, 'protein')
+feature_extractor['Ingredients'] = lambda ingredients: ingredient_extract(ingredients)
 
 equipment_list = [
     'apple cutter', 
@@ -99,15 +113,21 @@ equipment_list = [
     'saucepot',
 ]
 
+def get_ingredient_count():
+    pickle_file = open(debug_prefix + 'generated-results/ingredient_count.pickle', 'rb')
+    ingredients = pickle.load(pickle_file)
+    pickle_file.close()
+    return ingredients    
+
 def get_ingredient_map():
-    pickle_file = open('generated-results/ingredient_to_index.pickle', 'rb')
+    pickle_file = open(debug_prefix + 'generated-results/ingredient_to_index.pickle', 'rb')
     ingredients = pickle.load(pickle_file)
     pickle_file.close()
     return ingredients
 
 def get_recipe_id_map():
     recipe_ids = {}
-    with open('datasets/condensed-data_interaction.csv', 'r') as f:
+    with open(debug_prefix + 'datasets/condensed-data_interaction.csv', 'r') as f:
         index = 0
         while(True):
             line = f.readline()
@@ -121,7 +141,7 @@ def get_recipe_id_map():
 def get_user_index_map():
     user_id_index_map = {}
     index = 0
-    with open('datasets/condensed-data_interaction.csv', 'r') as f:
+    with open(debug_prefix + 'datasets/condensed-data_interaction.csv', 'r') as f:
         while(True):
             interaction = f.readline()
             if interaction == '':
@@ -131,87 +151,89 @@ def get_user_index_map():
                 user_id_index_map[user_id] = index
                 index += 1
 
-# Globals
-recipe_index_map = get_recipe_id_map()
-user_index_map = get_user_index_map()
+ignore_words =  'trimmed inch inches ice green red blue orange yellow boiling boiled stemmed frozen degrees degree warm cold temp topping diced ounce ounces fluid fluids thawed drained needed melted undrained halved prepared crumbled refridgerated canned mashed baked unbaked crushed smashed dried crushed grated flaked fresh shredded minced warm cold dry wet stale chop chopped fileted skinned touched grilled heated taste to and with for when where if into small medium large optional fluid ounce can such uncooked cooked ficed sliced beat beaten peeled pitted cut as for to ground toothpick toothpicks'.split(' ')
 
-bad_ingredients = [
-    'white', 'water', 'fryer', 'sauce', 
-    'topping', 'spread', 'fresh', 'fluid ounce) can', 
-    'half and half', 'brown', 'red', 'old-fashioned',
-    'optional', 'crisp', 'wet ingredients', 'decoration',
-    'blue', 'sliced', 'chopped', 'jumbo', 'choice',
-    'prepared', 'to serve', 'yellow', 'dry ingredients',
-    'ice', 'cubed', 'large', 'cooked', 'refrigerated',
-    'black', 'grated', 'skim', 'shredded', 'dark',
-    'amber', 'half-and-half', 'green', 'orange',
-    'light', 'frozen', 'melted', 'hot', 'cold',
-    'optional', 'sweet'
-]
+err_log = Logger("err.txt")
 
+ingredient_map = {}
 ###########################################   CONDENSE FUNCTIONS   ###########################################
-def condense_ingredients():
 
+def get_all_sub_ingredients(ingredient_arr):
+    # Remove words we want to ignore
+    ingredient_arr = [i for i in ingredient_arr if i not in ignore_words and not i.isdigit() and len(i) > 2]
+    # Remove 
+    word_count = len(ingredient_arr)
+    for i in range(2, len(ingredient_arr)+1):
+        ingredient_arr += [' '.join(ingredient_arr[start:start+i]) for start in range(word_count-i + 1)]
+    ingredient_arr.reverse()
+    return ingredient_arr
+
+def condense_ingredients(data_path):
     categories = {}
+    food_data = open(debug_prefix+'datasets/generic-food.csv', encoding='utf-8', newline='')
+    food_reader = csv.reader(food_data)
+    for food in food_reader:
+        categories[food[0].lower()] = 1 
 
-    food_data = open('datasets/generic-food.csv', encoding='utf-8', newline='')
-    reader = csv.reader(food_data)
-    columns = next(reader)
-    for food in reader:
-        categories[food[columns.index("FOOD NAME")].lower()] = 1 
+    logger = Logger('food_condense_out.txt')
 
-    with open('datasets/core-data_recipe.csv', encoding='utf-8' , newline='') as csvfile:
+    with open(data_path, encoding='utf-8' , newline='') as csvfile:
         reader = csv.reader(csvfile)
         column_headers = next(reader)
-        try:
-            for recipe in reader:
-                ingredients = recipe[column_headers.index('ingredients')]
-                ingredients = ingredients.lower()
-                ingredients = ingredients.replace(':', '')
-                ingredient_list = ingredients.split('^')
+        for recipe in reader:
+            ingredients = recipe[column_headers.index('ingredients')].lower()
+            non_letters = re.compile('[^a-zA-Z\\^]')
+            ingredients = non_letters.sub(' ', ingredients).split('^')
+            for ingredient in ingredients:
+                ingredient_as_arr = ingredient.split(' ')
+                is_one_word = len(ingredient) == 1
+                sub_ingredients = get_all_sub_ingredients(ingredient_as_arr)
+                # One word ingredients are specially handled
+                if is_one_word and ingredient not in categories:
+                    categories[ingredient] = 1
+                    continue
 
-                for ingredient in ingredient_list:
-                    has_category = False
-                    if ingredient in categories:
-                        has_category = True
-                        categories[ingredient] += 1
-                        print("Found category for " + ingredient)
-                    else:
-                        ingredient_words = ingredient.split(' ')
-                        # Try to find a word in the ingredient that is a category
-                        for word in ingredient_words:
-                            if word in categories:
-                                categories[word] += 1
-                                print(ingredient + " will be condensed to " + word)
-                                has_category = True
-                                break
-                    # didnt find any matches for ingredient
-                    if not has_category:
-                        if ingredient in bad_ingredients:
-                            continue
-                        print("Cannot find feature for " + ingredient)
-                        print("Adding " + ingredient + " as a category")
-                        categories[ingredient] = 1
-        except Exception as e:
-            print(e)
-    
-    # Remove all ingredients that appeared less than 4 times
-    final_categories = {}
+                best_match = None
+                # Matches longest substring of ingredient that is a category
+                # Creates categories for all substrings longer than the longest match (rare matches are removed at the end)
+                for sub in sub_ingredients:
+                    word_count = len(sub.split(' '))
+                    if best_match is not None and word_count < len(best_match.split(' ')):
+                        break
+                    if sub in categories:
+                        best_match = best_match if best_match is not None and categories[best_match] > categories[sub] else sub
+                        continue
+                    if word_count > 1:
+                        logger.log(sub + " CREATED")
+                        categories[sub] = 1
+                if best_match is not None:
+                    categories[best_match] += 1       
+                
+
+    # Remove rare ingredients
+    categories = {k:v for (k,v) in categories.items() if v > 50}
+    ingredient_count = categories.copy()
+
     index = 0
-    for i in categories:
-        if categories[i] > 4:
-            # Instead of value being count, make it the index value for the ingredient in the feature matrix
-            final_categories[i] = index
-            index += 1
-    
-    output_file = open("generated-results/ingredient_to_index.pickle", 'wb')
-    pickle.dump(final_categories, output_file)
-    return
+    for ing in categories:
+        categories[ing] = index
+        index += 1
 
+    category_log = Logger("food_categories.txt")
+    for ingredient in categories: 
+        category_log.log(ingredient)
+
+    output_file = open(debug_prefix+"generated-results/ingredient_to_index.pickle", 'wb')
+    pickle.dump(categories, output_file)
+    ingredient_map = categories
+
+    ing_count = open(debug_prefix+'generated-results/ingredient_count.pickle', 'wb')
+    pickle.dump(ingredient_count, ing_count)
+    return
 
 # Result: condensed-data_interaction.csv which contains 10000 users and 45000 recipes
 def condense_users_and_recipes():
-    with open('datasets/raw-data_interaction.csv', encoding='utf-8' ,newline='') as csvfile:
+    with open(debug_prefix+'datasets/raw-data_interaction.csv', encoding='utf-8' ,newline='') as csvfile:
         reader = csv.reader(csvfile)
         column_headers = next(reader)
         
@@ -232,7 +254,7 @@ def condense_users_and_recipes():
         column_headers = next(reader)
 
         # Write all user-recipe interactions for every recipe a user in the top 10000 most active has rated
-        with open('datasets/condensed-data_interaction.csv', 'w', newline='') as condensed_csvfile:
+        with open(debug_prefix + 'datasets/condensed-data_interaction.csv', 'w', newline='') as condensed_csvfile:
             count = 0
             for interaction in reader:
                 if count % 500 == 0:
@@ -256,9 +278,9 @@ def prep_extract(directions, is_negative_feature):
         threshold = 60
     else:
         threshold = 15
-    if match is None:
-        return False
     try: 
+        if match is None:
+            return False
         time = match[0][6:-2].split(' ')
         for i in range(len(time)-1, -1, -1):
             item = time[i]
@@ -277,7 +299,7 @@ def prep_extract(directions, is_negative_feature):
 
     except Exception as e:
         # Some recipes dont have prep time info. Default to false in this case.
-        print("In prep extract: " + str(e))
+        err_log.log(str(e))
         return False
 
 def ready_in_extract(directions, is_negative_feature):
@@ -310,28 +332,29 @@ def ready_in_extract(directions, is_negative_feature):
             return ready_in_time <= threshold
     
     except Exception as e:
-        print("in ready in extract: " + str(e))
+        err_log.log(str(e))
         return False
 
 def instruction_extract(directions, is_negative_feature):
     threshold = 0
     if is_negative_feature:
-        threshold = 25
+        threshold = 16
     else:
-        threshold = 10
+        threshold = 8
     pattern = re.compile(r'\..*?\}')
     match = re.search(pattern, directions)
     if match is None:
         pattern = re.compile(r'm\\n.*')
         match = re.search(pattern, directions)
     try:
-        instructions = (match[0].replace('.', '\\n')).split('\\n')
+        instructions = (match[0].replace('\\n', '')).split('.')
+        instructions = [x for x in instructions if x != '' and x != "'}"]
         if is_negative_feature:
             return len(instructions) >= threshold
         else:
             return len(instructions) <= threshold
     except Exception as e:
-        print("in instruction extract " + str(e))
+        err_log.log(str(e))
         return False
 
 def equipment_extract(directions, is_negative_feature):
@@ -367,7 +390,7 @@ def nutrition_extract(recipe, nutrient):
             return False
         return int(value[0]) >= 25
     except Exception as e:
-        print("in nutrition extract " + str(e))
+        err_log.log(str(e))
         return False
 
 def ingredient_num_extract(ingredients, is_negative_feature):
@@ -383,9 +406,31 @@ def ingredient_num_extract(ingredients, is_negative_feature):
         else:
             return num_of_ingredients <= threshold
     except Exception as e:
-        print("In ingredient num extract, " + str(e))
+        err_log.log(str(e))
         return False
 
+def ingredient_extract(ingredients):
+    ingredient_vec = [0]*len(ingredient_map)
+    ingredients = ingredients.lower()
+    non_letters = re.compile('[^a-zA-Z\\^]')
+    ingredients = non_letters.sub(' ', ingredients).split('^')
+    
+    for ingredient in ingredients:
+        subsets = get_all_sub_ingredients(ingredient.split(' '))
+        best_match = None    
+        for sub in subsets:
+            if best_match is not None and len(sub.split(' ')) < len(best_match.split(' ')):
+                break
+            if sub in ingredient_map:
+                if best_match is not None and len(sub.split(' ')) == len(best_match.split(' ')):
+                    best_match = sub if ingredient_count[sub] > ingredient_count[best_match] else best_match
+                    continue
+                best_match = sub        
+        if best_match is None:
+            continue
+        ingredient_vec[ingredient_map[best_match]] = 1
+    return ingredient_vec
+            
 ###########################################    HELPER FUNCTIONS   #####################################################
 
 def extract_features(ingredients, cooking_directions, nutrition):
@@ -393,35 +438,24 @@ def extract_features(ingredients, cooking_directions, nutrition):
         feature_map = []
         for feature in ordered_feature_list["Cooking"]:
             feature_map.append(int(feature_extractor[feature](cooking_directions)))
-        for feature in ordered_feature_list["Ingredients"]:
-            feature_map.append(int(feature_extractor[feature](ingredients)))
         for feature in ordered_feature_list["Nutrition"]:
             feature_map.append(int(feature_extractor[feature](nutrition)))
-        
-        ingredient_vec = [0]*len(ingredient_map)
-        ingredients = ingredients.lower()
-        ingredients = ingredients.replace(':', '')
-        ingredient_list = ingredients.split('^')
-        
-        for ingredient in ingredient_list:
-            if ingredient in ingredient_map:
-                ingredient_vec[ingredient_map[ingredient]] = 1
+        for feature in ordered_feature_list["Ingredients"]:
+            if feature == 'Ingredients':
+                feature_map += feature_extractor[feature](ingredients)
             else:
-                for word in ingredient:
-                    if word in ingredient_map:
-                        ingredient_vec[ingredient_map[word]] = 1
-        
-        feature_map += ingredient_vec
+                feature_map.append(int(feature_extractor[feature](ingredients)))
         return feature_map
+    
     except Exception as e:
-        print("in extract features, " + str(e))
+        err_log.log(str(e))
 
 def get_num_of_features():
-    return len(ingredient_map) + len(ordered_feature_list["Cooking"]) + len(ordered_feature_list["Ingredients"]) + len(ordered_feature_list["Nutrition"])
+    return len(ingredient_map) + len(ordered_feature_list["Cooking"]) + len(ordered_feature_list["Ingredients"]) + len(ordered_feature_list["Nutrition"]) - 1
 
 def get_num_of_recipes():
     recipes = {}
-    with open('datasets/condensed-data_interaction.csv', encoding='utf-8', newline='') as r:
+    with open(debug_prefix + 'datasets/condensed-data_interaction.csv', encoding='utf-8', newline='') as r:
         while(True):
             line = r.readline()
             if line == '':
@@ -440,7 +474,7 @@ def create_A():
         A_row_num = len(users)
         A_column_num = len(recipes)
         A = np.zeros((A_row_num, A_column_num))
-        with open('datasets/condensed-data_interaction.csv', 'r') as f:
+        with open(debug_prefix+'datasets/condensed-data_interaction.csv', 'r') as f:
             while(True):
                 interaction = f.readline()
                 if interaction == '':
@@ -449,12 +483,12 @@ def create_A():
                 user_id = fields[0]
                 recipe_id = fields[1]
                 A[users[user_id], recipes[recipe_id]] = fields[2]
-        save_file = open("generated-results/user-rating_matrix.npy", 'wb')
+        save_file = open(debug_prefix+"generated-results/user-rating_matrix.npy", 'wb')
         np.save(save_file, A)
         save_file.close()
         print("Finished generating user-rating matrix")
     except Exception as e:
-        print("Error occured in create_A ", str(e))
+        err_log.log(str(e))
     
 
 def create_R():
@@ -463,9 +497,7 @@ def create_R():
     # R is the recipe-feature map
     R = np.zeros((R_rows_num, R_columns_num))
     # Make sure we know which column is which recipe in R
-    R_id_index_map = {}
-    index = 0
-    with open('datasets/core-data_recipe.csv', encoding='utf-8' ,newline='') as recipe_data:
+    with open(debug_prefix+ 'datasets/core-data_recipe.csv', encoding='utf-8' ,newline='') as recipe_data:
         reader = csv.reader(recipe_data)
         column_headers = next(reader)
         try: 
@@ -473,40 +505,76 @@ def create_R():
                 if recipe[column_headers.index('recipe_id')] not in recipe_index_map:
                     continue
 
-                R_id_index_map[recipe[column_headers.index("recipe_id")]] = index
+                index = recipe_index_map[recipe[column_headers.index("recipe_id")]]
                 recipe_map_vec = extract_features(recipe[column_headers.index('ingredients')], recipe[column_headers.index('cooking_directions')], recipe[column_headers.index('nutritions')])
                 R[:, index] = np.asarray(recipe_map_vec)
-                index += 1            
-            r_file = open("generated-results/Recipe-feature_map.npy", 'wb')
+            r_file = open(debug_prefix+"generated-results/Recipe-feature_map.npy", 'wb')
             np.save(r_file, R)
             r_file.close()
             print("Finished generating Recipe-feature map")
             print("Size of R is " + str(R.shape))
         except Exception as e:
-            print("In create R, " + str(e))
+            err_log.log(str(e))
 
 ###########################################    TEST FUNCTIONS   #####################################################
 
 def run_tests():
+    R = np.load(debug_prefix+'generated-results/Recipe-feature_map.npy')
+    A = np.load(debug_prefix+'generated-results/user-rating_matrix.npy')
+    with open(debug_prefix+'datasets/test_data.csv', 'r') as test_data:
+        reader = csv.reader(test_data)
+        column_headers = next(reader)
+        recipe = next(reader)
+
+        column_index = recipe_index_map[recipe[column_headers.index('recipe_id')]]
+        expected = R[:,column_index]
+        np.zeros((1,len(expected)))
+        t_ingredients = [
+            'sauerkraut', 'granny smith apples', 'apple cider', 
+            'brown sugar','salt', 'garlic powder', 'black pepper',
+            'boneless pork loin roast', 'caraway seeds'
+        ]
+
+        non_ingredient_feature_vec = np.array([0,1,1,0,0,1,0,1,0,0,0,0,1,0,0])
+        ingredient_feautre_vec = np.zeros(len(ingredient_map))
+
+        for ingredient in t_ingredients:
+            ingredient_feautre_vec[ingredient_map[ingredient]] = 1
+
+        result = np.concatenate((non_ingredient_feature_vec, ingredient_feautre_vec))
+
+        if not np.array_equal(result, expected):
+            print("Test 1 failed")
+            for i in range(len(result)):
+                if result[i] != expected[i]:
+                    print("Index " + str(i) + " is not equal. test_val = " + str(result[i]) + ", expected = " + str(expected[i]))
+        else:
+            print("Test 1 passed")
+
     return 
 
 
 ###########################################    ENTRY POINTS   #####################################################
-
-condense = False
-create_matrices = False
-test = False
+condense = True
+create_matrices = True
+runtest = True
+test_data = False
+data = debug_prefix+'datasets/test_data.csv' if test_data else debug_prefix+'datasets/core-data_recipe.csv'
 
 if condense:
-    condense_ingredients()
-    condense_users_and_recipes()
+    condense_ingredients(data)
+    #condense_users_and_recipes()
+# Globals
+recipe_index_map = get_recipe_id_map()
+user_index_map = get_user_index_map()
 ingredient_map = get_ingredient_map()
+ingredient_count = get_ingredient_count()
 if create_matrices:
     create_R()
     create_A()
     bundle = Bundle(user_index_map, recipe_index_map)
-    bundle.serialize('generated-results/index_maps.pickle')
-if test:
+    bundle.serialize(debug_prefix+'generated-results/index_maps.pickle')
+if runtest:
     run_tests()
 
 
