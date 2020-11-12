@@ -175,8 +175,6 @@ def condense_ingredients(data_path):
     for food in food_reader:
         categories[food[0].lower()] = 1 
 
-    logger = Logger('food_condense_out.txt')
-
     with open(data_path, encoding='utf-8' , newline='') as csvfile:
         reader = csv.reader(csvfile)
         column_headers = next(reader)
@@ -204,7 +202,6 @@ def condense_ingredients(data_path):
                         best_match = best_match if best_match is not None and categories[best_match] > categories[sub] else sub
                         continue
                     if word_count > 1:
-                        logger.log(sub + " CREATED")
                         categories[sub] = 1
                 if best_match is not None:
                     categories[best_match] += 1       
