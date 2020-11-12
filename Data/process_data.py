@@ -151,7 +151,7 @@ def get_user_index_map():
                 user_id_index_map[user_id] = index
                 index += 1
 
-ignore_words =  'trimmed inch inches ice green red blue orange yellow boiling boiled stemmed frozen degrees degree warm cold temp topping diced ounce ounces fluid fluids thawed drained needed melted undrained halved prepared crumbled refridgerated canned mashed baked unbaked crushed smashed dried crushed grated flaked fresh shredded minced warm cold dry wet stale chop chopped fileted skinned touched grilled heated taste to and with for when where if into small medium large optional fluid ounce can such uncooked cooked ficed sliced beat beaten peeled pitted cut as for to ground toothpick toothpicks'.split(' ')
+ignore_words =  'rinsed lightly thick pieces thin halved halves cubed cube very ripe wrapped unwrapped fine superfine new old trimmed inch inches ice green red blue orange yellow boiling stemmed frozen degrees degree warm cold temp topping diced ounce ounces fluid fluids thawed drained needed melted undrained halved prepared crumbled refridgerated canned mashed crushed smashed dried crushed grated flaked fresh shredded minced warm cold dry wet stale chop chopped fileted skinned touched grilled heated taste to and with for when where if into small medium large optional fluid ounce can such uncooked cooked ficed sliced beat beaten peeled pitted cut as for to ground toothpick toothpicks'.split(' ')
 
 err_log = Logger("err.txt")
 
@@ -573,7 +573,6 @@ if create_matrices:
     bundle.serialize(debug_prefix+'generated-results/index_maps.pickle')
 if runtest:
     run_tests()
-
 
 '''
 How to load the dicts that map user/recipe id to the index of that user/recipe in a matrix
