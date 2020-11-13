@@ -9,7 +9,6 @@ DEBUG = False
 
 debug_prefix = './Recipe-Recommender/Data/' if DEBUG else ''
 
-
 class Bundle:
     def __init__(self, user_index_map, recipe_index_map):
         self.user_index_map = user_index_map
@@ -137,6 +136,8 @@ def get_recipe_id_map():
             if recipe_id not in recipe_ids:
                 recipe_ids[recipe_id] = index
                 index += 1
+    x = len(recipe_ids)
+    return recipe_ids
 
 def get_user_index_map():
     user_id_index_map = {}
@@ -151,7 +152,7 @@ def get_user_index_map():
                 user_id_index_map[user_id] = index
                 index += 1
 
-ignore_words =  'rinsed lightly thick pieces thin halved halves cubed cube very ripe wrapped unwrapped fine superfine new old trimmed inch inches ice green red blue orange yellow boiling stemmed frozen degrees degree warm cold temp topping diced ounce ounces fluid fluids thawed drained needed melted undrained halved prepared crumbled refridgerated canned mashed crushed smashed dried crushed grated flaked fresh shredded minced warm cold dry wet stale chop chopped fileted skinned touched grilled heated taste to and with for when where if into small medium large optional fluid ounce can such uncooked cooked ficed sliced beat beaten peeled pitted cut as for to ground toothpick toothpicks'.split(' ')
+ignore_words = 'rinsed lightly thick pieces thin halved halves cubed cube very ripe wrapped unwrapped fine superfine new old trimmed inch inches ice green red blue orange yellow boiling stemmed frozen degrees degree warm cold temp topping diced ounce ounces fluid fluids thawed drained needed melted undrained halved prepared crumbled refridgerated canned mashed crushed smashed dried crushed grated flaked fresh shredded minced warm cold dry wet stale chop chopped fileted skinned touched grilled heated taste to and with for when where if into small medium large optional fluid ounce can such uncooked cooked ficed sliced beat beaten peeled pitted cut as for to ground toothpick toothpicks'.split(' ')
 
 err_log = Logger("err.txt")
 
@@ -186,11 +187,6 @@ def condense_ingredients(data_path):
                 ingredient_as_arr = ingredient.split(' ')
                 is_one_word = len(ingredient) == 1
                 sub_ingredients = get_all_sub_ingredients(ingredient_as_arr)
-                # One word ingredients are specially handled
-                if is_one_word and ingredient not in categories:
-                    categories[ingredient] = 1
-                    continue
-
                 best_match = None
                 # Matches longest substring of ingredient that is a category
                 # Creates categories for all substrings longer than the longest match (rare matches are removed at the end)
@@ -201,11 +197,10 @@ def condense_ingredients(data_path):
                     if sub in categories:
                         best_match = best_match if best_match is not None and categories[best_match] > categories[sub] else sub
                         continue
-                    if word_count > 1:
-                        categories[sub] = 1
-                if best_match is not None:
-                    categories[best_match] += 1       
+                    categories[sub] = 1
                 
+                if best_match is not None:
+                    categories[best_match] += 1
 
     # Remove rare ingredients
     categories = {k:v for (k,v) in categories.items() if v > 50}
@@ -406,26 +401,57 @@ def ingredient_num_extract(ingredients, is_negative_feature):
         err_log.log(str(e))
         return False
 
+def better_match(sub_ingredient, possible_match, best_match, match):
+    if sub_ingredient in get_all_sub_ingredients(possible_match.split(' ')):
+        # curr_sub is substring of possible match
+        if best_match is None:
+            return True
+        if len(sub_ingredient) > len(best_match):
+            # Always try and match the longer sub ingredient
+            return True
+        if len(sub_ingredient) < len(best_match):
+            return False
+        if ingredient_count[possible_match] > ingredient_count[match]:
+            # Match more popular
+            return True
+        else:
+            return False
+    else:
+        # ingredient is not a sub ingredient of possible match
+        return False
+
 def ingredient_extract(ingredients):
     ingredient_vec = [0]*len(ingredient_map)
     ingredients = ingredients.lower()
     non_letters = re.compile('[^a-zA-Z\\^]')
     ingredients = non_letters.sub(' ', ingredients).split('^')
-    
     for ingredient in ingredients:
-        subsets = get_all_sub_ingredients(ingredient.split(' '))
-        best_match = None    
-        for sub in subsets:
+        ingredient_substrings = get_all_sub_ingredients(ingredient.split(' '))
+        best_match = None
+        match = None    
+        ingredient_list = ingredient_map.keys()
+        for sub in ingredient_substrings:
+            # No more matches of same size as best match
             if best_match is not None and len(sub.split(' ')) < len(best_match.split(' ')):
                 break
-            if sub in ingredient_map:
-                if best_match is not None and len(sub.split(' ')) == len(best_match.split(' ')):
-                    best_match = sub if ingredient_count[sub] > ingredient_count[best_match] else best_match
-                    continue
-                best_match = sub        
+            
+            if sub in ingredient_list:
+                # Full substring is an ingredient in our list
+                best_match = sub
+                match = sub
+                break
+
+            for possible_match in ingredient_list:
+                # Find the most popular ingredient that has sub as a substring
+                if better_match(sub, possible_match, best_match, match):
+                    best_match = sub
+                    match = possible_match
+                              
         if best_match is None:
+            err_log.log("Failed to match " + ingredient)
             continue
-        ingredient_vec[ingredient_map[best_match]] = 1
+        x = ingredient_map[match]
+        ingredient_vec[ingredient_map[match]] = 1
     return ingredient_vec
             
 ###########################################    HELPER FUNCTIONS   #####################################################
@@ -445,6 +471,7 @@ def extract_features(ingredients, cooking_directions, nutrition):
         return feature_map
     
     except Exception as e:
+        print(e)
         err_log.log(str(e))
 
 def get_num_of_features():
@@ -484,9 +511,9 @@ def create_A():
         np.save(save_file, A)
         save_file.close()
         print("Finished generating user-rating matrix")
+        print("A is " + str(A.shape))
     except Exception as e:
         err_log.log(str(e))
-    
 
 def create_R():
     R_columns_num = get_num_of_recipes()
@@ -494,23 +521,28 @@ def create_R():
     # R is the recipe-feature map
     R = np.zeros((R_rows_num, R_columns_num))
     # Make sure we know which column is which recipe in R
+    count = 0
     with open(debug_prefix+ 'datasets/core-data_recipe.csv', encoding='utf-8' ,newline='') as recipe_data:
         reader = csv.reader(recipe_data)
         column_headers = next(reader)
         try: 
             for recipe in reader:
+                if count % 500 == 0:
+                    print(str(count) + " recipes mapped")
                 if recipe[column_headers.index('recipe_id')] not in recipe_index_map:
                     continue
 
                 index = recipe_index_map[recipe[column_headers.index("recipe_id")]]
-                recipe_map_vec = extract_features(recipe[column_headers.index('ingredients')], recipe[column_headers.index('cooking_directions')], recipe[column_headers.index('nutritions')])
-                R[:, index] = np.asarray(recipe_map_vec)
+                ingredient_map_vec = extract_features(recipe[column_headers.index('ingredients')], recipe[column_headers.index('cooking_directions')], recipe[column_headers.index('nutritions')])
+                R[:, index] = np.asarray(ingredient_map_vec)
+                count += 1
             r_file = open(debug_prefix+"generated-results/Recipe-feature_map.npy", 'wb')
             np.save(r_file, R)
             r_file.close()
             print("Finished generating Recipe-feature map")
             print("Size of R is " + str(R.shape))
         except Exception as e:
+            print(e)
             err_log.log(str(e))
 
 ###########################################    TEST FUNCTIONS   #####################################################
@@ -529,7 +561,9 @@ def run_tests():
         t_ingredients = [
             'sauerkraut', 'granny smith apples', 'apple cider', 
             'brown sugar','salt', 'garlic powder', 'black pepper',
-            'boneless pork loin roast', 'caraway seeds'
+            'boneless pork loin roast', 'caraway seeds', 'italian seasoning',
+            'onion'
+
         ]
 
         non_ingredient_feature_vec = np.array([0,1,1,0,0,1,0,1,0,0,0,0,1,0,0])
@@ -549,7 +583,6 @@ def run_tests():
             print("Test 1 passed")
 
     return 
-
 
 ###########################################    ENTRY POINTS   #####################################################
 condense = True
