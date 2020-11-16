@@ -7,7 +7,7 @@ from itertools import combinations
 
 DEBUG = False
 
-debug_prefix = './Recipe-Recommender/Data/' if DEBUG else ''
+debug_prefix = './Data/' if DEBUG else ''
 
 class Bundle:
     def __init__(self, user_index_map, recipe_index_map):
@@ -62,13 +62,13 @@ feature_extractor['ManyInstructions'] = lambda x: instruction_extract(x, True)
 feature_extractor['FewIntstructions'] = lambda x: instruction_extract(x, False)
 feature_extractor['ManyEquipment'] = lambda x: equipment_extract(x, True)
 feature_extractor['FewEquipment'] = lambda x: equipment_extract(x, False)
-feature_extractor['FewIngredients'] = lambda x: ingredient_num_extract(x, False)
-feature_extractor['ManyIngredients'] = lambda x: ingredient_num_extract(x, False)
 feature_extractor['carbohydrates'] = lambda recipe: nutrition_extract(recipe, 'carbohydrates')
 feature_extractor['sugars'] = lambda recipe: nutrition_extract(recipe, 'sugars')
 feature_extractor['calories'] = lambda recipe: nutrition_extract(recipe, 'calories')
 feature_extractor['fat'] = lambda recipe: nutrition_extract(recipe, 'fat')
 feature_extractor['protein'] = lambda recipe: nutrition_extract(recipe, 'protein')
+feature_extractor['FewIngredients'] = lambda x: ingredient_num_extract(x, False)
+feature_extractor['ManyIngredients'] = lambda x: ingredient_num_extract(x, True)
 feature_extractor['Ingredients'] = lambda ingredients: ingredient_extract(ingredients)
 
 equipment_list = [
@@ -566,7 +566,7 @@ def run_tests():
 
         ]
 
-        non_ingredient_feature_vec = np.array([0,1,1,0,0,1,0,1,0,0,0,0,1,0,0])
+        non_ingredient_feature_vec = np.array([0,1,1,0,0,1,0,1,0,0,0,0,1,0,1])
         ingredient_feautre_vec = np.zeros(len(ingredient_map))
 
         for ingredient in t_ingredients:
@@ -582,18 +582,45 @@ def run_tests():
         else:
             print("Test 1 passed")
 
+        recipe = next(reader)
+
+        column_index = recipe_index_map[recipe[column_headers.index('recipe_id')]]
+        expected = R[:,column_index]
+        np.zeros((1,len(expected)))
+        t_ingredients = [
+            'potatoes', 'bacon', 'sauce', 'heavy whipping cream', 'butter', 'garlic', 
+            'parmesan cheese', 'crust', 'water', 'honey', 'active yeast', 'vegetable oil',
+            'all purpose flour', 'mozzarella cheese'
+        ]    
+
+        non_ingredient_feature_vec = np.array([0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1])
+        ingredient_feautre_vec = np.zeros(len(ingredient_map))
+
+        for ingredient in t_ingredients:
+            ingredient_feautre_vec[ingredient_map[ingredient]] = 1
+
+        result = np.concatenate((non_ingredient_feature_vec, ingredient_feautre_vec))
+
+        if not np.array_equal(result, expected):
+            print("Test 2 failed")
+            for i in range(len(result)):
+                if result[i] != expected[i]:
+                    print("Index " + str(i) + " is not equal. test_val = " + str(result[i]) + ", expected = " + str(expected[i]))
+        else:
+            print("Test 2 passed")
+
     return 
 
 ###########################################    ENTRY POINTS   #####################################################
-condense = True
-create_matrices = True
+condense = False
+create_matrices = False
 runtest = True
 test_data = False
 data = debug_prefix+'datasets/test_data.csv' if test_data else debug_prefix+'datasets/core-data_recipe.csv'
 
 if condense:
     condense_ingredients(data)
-    #condense_users_and_recipes()
+    condense_users_and_recipes()
 # Globals
 recipe_index_map = get_recipe_id_map()
 user_index_map = get_user_index_map()
