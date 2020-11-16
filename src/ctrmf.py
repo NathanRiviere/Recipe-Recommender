@@ -127,3 +127,11 @@ class ctrmf():
 		return train_mse, test_mse
 
 
+A = np.load('../Data/generated-results/user-rating_matrix.npy')
+R = np.load('../Data/generated-results/Recipe-feature_map.npy')
+
+A_test = A[:500, :]
+A = A[500:, :]
+ctmrf = ctmrf(A, R)
+
+ctrmf.calculate_learning_curve(3, A_test)
