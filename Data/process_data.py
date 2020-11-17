@@ -612,8 +612,8 @@ def run_tests():
     return 
 
 ###########################################    ENTRY POINTS   #####################################################
-condense = False
-create_matrices = False
+condense = True
+create_matrices = True
 runtest = True
 test_data = False
 data = debug_prefix+'datasets/test_data.csv' if test_data else debug_prefix+'datasets/core-data_recipe.csv'
