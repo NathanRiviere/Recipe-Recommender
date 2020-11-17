@@ -1,4 +1,5 @@
 import numpy as np
+from helpers import *
 from sklearn.metrics import mean_squared_error
 
 def get_mse(prediction, actual):
@@ -32,7 +33,7 @@ class ctrmf():
 		self.n_users, self.n_recipes = ratings_data.shape
 		self.n_features = recipe_feature.shape[1]
 		self.reg_term = reg_term
-		self.ratings_users, ratings_recipes = self.ratings_data.nonzero()
+		self.ratings_users, self.ratings_recipes = self.ratings_data.nonzero()
 		self.n_samples = len(self.ratings_users)
 		self.verbose = verbose
 
@@ -127,11 +128,10 @@ class ctrmf():
 		return train_mse, test_mse
 
 
-A = np.load('../Data/generated-results/user-rating_matrix.npy')
-R = np.load('../Data/generated-results/Recipe-feature_map.npy')
+R = get_recipe_feature_map()
+A = get_user_rating_matrix()
+A_train, A_test = split_to_train_test(A, 0.2)
 
-A_test = A[:500, :]
-A = A[500:, :]
-ctmrf = ctmrf(A, R)
+CTRMF = ctrmf(A_train, R, verbose=True, reg_term=0.01)
 
-ctrmf.calculate_learning_curve(3, A_test)
+CTRMF.train(learning_rate=0.001)
