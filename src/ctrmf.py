@@ -80,11 +80,11 @@ class ctrmf():
 			prediction = self.predict(u, r)
 			e = self.error(u,r)
 			self.hidden_feature += self.learning_rate * \
-				sum([self.error(u,x) * np.outer(self.user_hidden[u], self.recipe_feature[x]) for x in range(self.n_recipes)])
+				sum([self.error(u,x) * np.outer(self.user_hidden[u], self.recipe_feature[:,x]) for x in range(self.n_recipes)])
 			self.recipe_bias[r] += self.learning_rate * (e - self.reg_term * self.recipe_bias[r])
 			self.user_bias[u] += self.learning_rate * (e - self.reg_term * self.user_bias[u])
 			self.user_hidden[u] += self.learning_rate * \
-				sum([self.error(u,x) * self.hidden_feature.dot(self.recipe_feature[x]) - self.reg_term * self.user_hidden[u] for x in range(n_recipes)])
+				sum([self.error(u,x) * self.hidden_feature.dot(self.recipe_feature[:,x]) - self.reg_term * self.user_hidden[u] for x in range(self.n_recipes)])
 	
 	def error(self, u, r):
 		return self.ratings_data[u, r] - self.predict(u, r)
