@@ -31,7 +31,7 @@ class ctrmf():
 		self.recipe_feature = recipe_feature # recipes x features
 		self.n_hidden = n_hidden
 		self.n_users, self.n_recipes = ratings_data.shape
-		self.n_features = recipe_feature.shape[1]
+		self.n_features = recipe_feature.shape[0]
 		self.reg_term = reg_term
 		self.ratings_users, self.ratings_recipes = self.ratings_data.nonzero()
 		self.n_samples = len(self.ratings_users)
@@ -78,16 +78,16 @@ class ctrmf():
 			u = self.ratings_users[index]
 			r = self.ratings_recipes[index]
 			prediction = self.predict(u, r)
-			e = error(u,r)
+			e = self.error(u,r)
 			self.hidden_feature += self.learning_rate * \
-				sum([self.error(u,x) * np.outer(self.user_hidden, self.recipe_feature[x]) for x in range(n_recipes)])
+				sum([self.error(u,x) * np.outer(self.user_hidden, self.recipe_feature[x]) for x in range(self.n_recipes)])
 			self.recipe_bias[r] += self.learning_rate * (e - self.reg_term * self.recipe_bias[r])
 			self.user_bias[u] += self.learning_rate * (e - self.reg_term * self.user_bias[u])
 			self.user_hidden[u] += self.learning_rate * \
 				sum([self.error(u,x) * self.hidden_feature.dot(self.recipe_feature[x]) - self.reg_term * self.user_hidden[u] for x in range(n_recipes)])
 	
 	def error(self, u, r):
-		return self.ratings_data[u, r] - predict(u, r)
+		return self.ratings_data[u, r] - self.predict(u, r)
 
 	def predict_all(self):
 		predictions = np.zeros((n_users, n_recipes))
@@ -98,7 +98,7 @@ class ctrmf():
 
 	def predict(self, u, r):
 		prediction = self.global_bias + self.user_bias[u] + self.recipe_bias[r]
-		prediction += self.user_hidden[u,:].dot(self.hidden_feature).dot(self.recipe_feature[r,:])
+		prediction += self.user_hidden[u,:].dot(self.hidden_feature).dot(self.recipe_feature[:,r])
 		return prediction
 
 	def calculate_learning_curve(self, iter_array, test):
