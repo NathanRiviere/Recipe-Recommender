@@ -2,7 +2,7 @@ import sys
 sys.path.append(".")
 import numpy as np
 import pickle
-import random 
+import random
 
 def get_user_rating_matrix(path='../Data/generated-results/user-rating_matrix.npy'):
     return np.load(path)
@@ -18,7 +18,7 @@ def get_index_maps(path='../Data/generated-results/index_maps.pickle'):
     users = bundle.user_index_map
     # recipes dict: recipe_id -> index in recipe_feature_map
     recipes = bundle.recipe_index_map
-    return users, recipes 
+    return users, recipes
 '''
 # Pick out 20% of user ratings for our test set
 def split_to_train_test(user_ratings):
