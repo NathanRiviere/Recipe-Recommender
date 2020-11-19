@@ -3,6 +3,11 @@ sys.path.append(".")
 import numpy as np
 import pickle
 import random
+from sklearn.metrics import mean_squared_error, roc_curve, auc
+from sklearn.preprocessing import label_binarize
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
 
 def get_user_rating_matrix(path='../Data/generated-results/user-rating_matrix.npy'):
     return np.load(path)
@@ -19,6 +24,39 @@ def get_index_maps(path='../Data/generated-results/index_maps.pickle'):
     # recipes dict: recipe_id -> index in recipe_feature_map
     recipes = bundle.recipe_index_map
     return users, recipes
+
+def get_mse(pred, actual):
+    # Ignore nonzero terms.
+    pred = pred[actual.nonzero()].flatten()
+    actual = actual[actual.nonzero()].flatten()
+    return mean_squared_error(pred, actual)
+
+def get_auc(pred, actual):
+	classes = [1.0,2.0,3.0,4.0,5.0]
+	pred = np.round(pred[actual.nonzero()].flatten())
+	pred = label_binarize(pred, classes=classes)
+	actual = actual[actual.nonzero()].flatten()
+	actual = label_binarize(actual, classes=classes)
+	n_classes = len(classes)
+	fpr = dict()
+	tpr = dict()
+	roc_auc = dict()
+	for i in range(n_classes):
+		fpr[i], tpr[i], _ = roc_curve(actual[:, i], pred[:, i])
+		roc_auc[i] = auc(fpr[i], tpr[i])
+	return fpr, tpr, roc_auc
+
+def plot_learning_curve(iter_array, model):
+	plt.title('MSE Training vs. Test')
+	plt.plot(iter_array, model.train_mse, label='Training', linewidth=5)
+	plt.plot(iter_array, model.test_mse, label='Test', linewidth=5)
+	plt.xticks(fontsize=16)
+	plt.yticks(fontsize=16)
+	plt.xlabel('iterations', fontsize=30)
+	plt.ylabel('MSE', fontsize=30)
+	plt.legend(loc='best', fontsize=20)
+	plt.show()
+
 '''
 # Pick out 20% of user ratings for our test set
 def split_to_train_test(user_ratings):
@@ -39,6 +77,7 @@ def split_to_train_test(user_ratings):
             user_ratings_test = np.column_stack((user_ratings_test, test_column))
 
     return user_ratings, user_ratings_test
+
 '''
 
 def split_to_train_test(user_ratings, test_percentage):

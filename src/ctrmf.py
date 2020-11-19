@@ -1,19 +1,13 @@
 import numpy as np
 from helpers import *
-from sklearn.metrics import mean_squared_error
 from datetime import datetime
-
-def get_mse(prediction, actual):
-	prediction = prediction[actual.nonzero()].flatten()
-	actual = actual[actual.nonzero()].flatten()
-	return mean_squared_error(prediction, actual)
 
 class ctrmf():
 	def __init__(self,
 				 ratings_data,
 				 recipe_feature,
-				 n_hidden=100,
-				 reg_term=0.0,
+				 n_hidden=80,
+				 reg_term=0.001,
 				 verbose=False):
 		"""
 		ratings_data : ((n_users, n_recipes) 2D array)
@@ -58,6 +52,7 @@ class ctrmf():
 		learning_rate: (Double)
 			Used to determine the rate of sgd calculations.
 		"""
+		np.random.seed(11)
 		self.user_hidden    = np.random.normal(scale=1./self.n_hidden,
 									           size=(self.n_users, self.n_hidden))
 		self.hidden_feature = np.random.normal(scale=1./self.n_hidden,
@@ -73,12 +68,12 @@ class ctrmf():
 		Assumes all learned matrices are initialized and performs n_iter iterations
 		of stochastic gradient descent.
 		"""
-		np.random.seed(11)
 		for i in range(n_iter):
 			if i % 10 == 0 and self.verbose:
 				print('\tcurrent iteration: {}'.format(i))
 			self.training_indices = np.arange(self.n_samples)
 			np.random.shuffle(self.training_indices)
+			self.training_indices = self.training_indices[:10000]
 			self.sgd()
 
 	def sgd(self):
@@ -99,21 +94,24 @@ class ctrmf():
 
 			rs = self.ratings_data[u].nonzero()[0]
 			predictions = self.predict_user(u, rs)
-			eu = self.ratings_data[u] - predictions[u]
+			eu = self.ratings_data[u] - predictions
+
+			old_hidden_feature = np.copy(self.hidden_feature)
 			self.hidden_feature += self.learning_rate * \
-					sum([eu[x] * np.outer(self.user_hidden[u], self.recipe_feature[x]) for x in rs])
-			#self.hidden_feature += self.learning_rate * \
-			#	sum([self.error(u,x) * np.outer(self.user_hidden[u], self.recipe_feature[x]) for x in range(self.n_recipes)])
+					(np.outer(self.user_hidden[u], sum([eu[x] * self.recipe_feature[x] for x in rs])) - self.reg_term * self.hidden_feature * len(rs))
 			self.recipe_bias[r] += self.learning_rate * (eu[r] - self.reg_term * self.recipe_bias[r])
 			self.user_bias[u] += self.learning_rate * (eu[r] - self.reg_term * self.user_bias[u])
+			old_user_hidden = np.copy(self.user_hidden)
 			self.user_hidden[u] += self.learning_rate * \
-				sum([eu[x] * self.hidden_feature.dot(self.recipe_feature[x]) - self.reg_term * self.user_hidden[u] for x in rs])
+				(old_hidden_feature.dot(sum([eu[x] * self.recipe_feature[x] for x in rs])) - self.reg_term * self.user_hidden[u] * len(rs))
+			if self.verbose and ctr % 10 == 0:
+				print("({:.5f},{:.5f})".format(sum(abs(self.user_hidden.ravel() - old_user_hidden.ravel())), sum(abs(self.hidden_feature.ravel() - old_hidden_feature.ravel()))))
 	
 	def error(self, u, r):
 		return self.ratings_data[u, r] - self.predict(u, r)
 
 	def predict_all(self):
-		return [predict_user(u) for u in range(n_users)]
+		return np.array([self.predict_user(u) for u in range(self.n_users)])
 
 	def predict_user(self, u, rs=None):
 		predictions = np.zeros(self.n_recipes)
@@ -125,34 +123,47 @@ class ctrmf():
 
 	def predict(self, u, r):
 		prediction = self.global_bias + self.user_bias[u] + self.recipe_bias[r]
-		prediction += self.user_hidden[u,:].dot(self.hidden_feature).dot(self.recipe_feature[r,:])
+		prediction += self.user_hidden[u].dot(self.hidden_feature).dot(self.recipe_feature[r])
 		return prediction
 
-	def calculate_learning_curve(self, iter_array, test):
-		"""
-
-		"""
+	def calculate_learning_curve(self, iter_array, test, learning_rate=0.1):
 		iter_array.sort()
 		self.train_mse = []
 		self.test_mse = []
+		self.min_mse = None
+		self.min_mse_iter = 0
+		#self.train_auc = []
+		#self.test_auc = []
+		#self.max_auc = None
 		iter_diff = 0
 		for (i, n_iter) in enumerate(iter_array):
 			if self.verbose:
 				print("Iteration:", n_iter)
 			if i == 0:
-				self.train(n_iter)
+				self.train(n_iter, learning_rate)
 			else:
 				self.partial_train(n_iter - iter_diff)
 
+			time = datetime.now()
 			predictions = self.predict_all()
+			new_time = datetime.now()
 
 			self.train_mse += [get_mse(predictions, self.ratings_data)]
 			self.test_mse += [get_mse(predictions, test)]
+			#self.train_auc += [get_auc(predictions, self.ratings_data)]
+			#self.test_auc += [get_auc(predictions, test)]
 			if self.verbose:
 				print("Train mse:", self.train_mse[-1])
 				print("Test mse:", self.test_mse[-1])
+				#print("Train auc:", self.train_auc[-1])
+				#print("Test auc:", self.test_auc[-1])
+			if self.min_mse is None or self.test_mse[-1] < self.min_mse:
+				self.min_mse = self.test_mse[-1]
+				self.min_mse_iter = n_iter
+			#if self.max_auc is None or self.test_auc[-1][2] > self.max_auc[2]:
+				#self.max_auc = self.test_auc[-1]
+
 			iter_diff = n_iter
-		return train_mse, test_mse
 
 
 R = get_recipe_feature_map().T
@@ -162,5 +173,6 @@ R_train = R[:32654]
 print(f"R_train.shape: {R_train.shape}")
 
 CTRMF = ctrmf(A_train, R_train, verbose=True, reg_term=0.01)
-
-CTRMF.train(learning_rate=0.001)
+iter_array = list(range(1,31))
+CTRMF.calculate_learning_curve(iter_array, A_test, learning_rate=0.001)
+plot_learning_curve(iter_array, CTRMF)
