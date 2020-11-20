@@ -7,7 +7,7 @@ class ctrmf():
 				 ratings_data,
 				 recipe_feature,
 				 n_hidden=80,
-				 reg_term=0.001,
+				 reg_term=0.0001,
 				 verbose=False):
 		"""
 		ratings_data : ((n_users, n_recipes) 2D array)
@@ -103,7 +103,8 @@ class ctrmf():
 			self.user_bias[u] += self.learning_rate * (eu[r] - self.reg_term * self.user_bias[u])
 			old_user_hidden = np.copy(self.user_hidden)
 			self.user_hidden[u] += self.learning_rate * \
-				(old_hidden_feature.dot(sum([eu[x] * self.recipe_feature[x] for x in rs])) - self.reg_term * self.user_hidden[u] * len(rs))
+				(old_hidden_feature.dot(sum([eu[x] * self.recipe_feature[x] for x in rs])) - \
+				self.reg_term * self.user_hidden[u] * len(rs))
 			if self.verbose and ctr % 10 == 0:
 				print("({:.5f},{:.5f})".format(sum(abs(self.user_hidden.ravel() - old_user_hidden.ravel())), sum(abs(self.hidden_feature.ravel() - old_hidden_feature.ravel()))))
 	
@@ -174,5 +175,5 @@ print(f"R_train.shape: {R_train.shape}")
 
 CTRMF = ctrmf(A_train, R_train, verbose=True, reg_term=0.01)
 iter_array = list(range(1,31))
-CTRMF.calculate_learning_curve(iter_array, A_test, learning_rate=0.001)
+CTRMF.calculate_learning_curve(iter_array, A_test, learning_rate=0.0001)
 plot_learning_curve(iter_array, CTRMF)
