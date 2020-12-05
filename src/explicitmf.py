@@ -137,8 +137,6 @@ class ExplicitMF():
 		iter_array.sort()
 		self.train_mse =[]
 		self.test_mse = []
-		self.train_auc =[]
-		self.test_auc = []
 		iter_diff = 0
 		for (i, n_iter) in enumerate(iter_array):
 			if self.verbose:
@@ -155,13 +153,9 @@ class ExplicitMF():
 
 			self.train_mse += [get_mse(predictions, self.ratings)]
 			self.test_mse += [get_mse(predictions, test)]
-			#self.train_auc += [get_auc(predictions, self.ratings)]
-			#self.test_auc += [get_auc(predictions, test)]
 			if self.verbose:
 				print('Train mse: ' + str(self.train_mse[-1]))
 				print('Test mse: ' + str(self.test_mse[-1]))
-				#print('Train auc: ' + str(self.train_auc[-1]))
-				#print('Test auc: ' + str(self.test_auc[-1]))
 			iter_diff = n_iter
 
 A = get_user_rating_matrix()
