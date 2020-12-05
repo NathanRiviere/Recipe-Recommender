@@ -1,19 +1,14 @@
 import numpy as np
-from helpers import *
-from sklearn.metrics import mean_squared_error
+import torch
 
-def get_mse(prediction, actual):
-	prediction = prediction[actual.nonzero()].flatten()
-	actual = actual[actual.nonzero()].flatten()
-	return mean_squared_error(prediction, actual)
-
-class ctrmf():
+class CTRMF(torch.nn.Module):
 	def __init__(self,
-				 ratings_data,
-				 recipe_feature,
-				 n_hidden=100,
-				 reg_term=0.0,
-				 verbose=False):
+				ratings_data,
+				recipe_feature,
+				n_hidden=80,
+				reg_term=0.01,
+				device=None,
+				verbose=False):
 		"""
 		ratings_data : ((n_users, n_recipes) 2D array)
 			Collection of recipe ratings for each user.
@@ -27,111 +22,53 @@ class ctrmf():
 		verbose : (Boolean)
 			Prints helpful training progress messages if True
 		"""
-		self.ratings_data = ratings_data # users x recipes
-		self.recipe_feature = recipe_feature # recipes x features
+		super().__init__()
+
+		self.ratings_data = ratings_data
+		self.recipe_feature = torch.FloatTensor(recipe_feature).to(device)
 		self.n_hidden = n_hidden
 		self.n_users, self.n_recipes = ratings_data.shape
 		self.n_features = recipe_feature.shape[1]
 		self.reg_term = reg_term
-		self.ratings_users, self.ratings_recipes = self.ratings_data.nonzero()
-		self.n_samples = len(self.ratings_users)
 		self.verbose = verbose
 
-	def train(self, n_iter=10, learning_rate=0.1):
-		"""
-		Reset all learned matrices and start training from scratch.
+		# Set learned matrices as Embeddings
+		self.user_hidden = torch.nn.Embedding(
+			self.n_users,
+			self.n_hidden
+		).to(device)
+		self.hidden_feature = torch.nn.Embedding(
+			self.n_hidden,
+			self.n_features
+		).to(device)
+		self.user_biases = torch.nn.Embedding(self.n_users, 1).to(device)
+		self.recipe_biases = torch.nn.Embedding(self.n_recipes, 1).to(device)
 
-		Params
-		======
-		n_iter: (Integer)
-			Number of iterations.
-		learning_rate: (Double)
-			Used to determine the rate of sgd calculations.
-		"""
-		self.user_hidden    = np.random.normal(scale=1./self.n_hidden,
-									           size=(self.n_users, self.n_hidden))
-		self.hidden_feature = np.random.normal(scale=1./self.n_hidden,
-											   size=(self.n_hidden, self.n_features))
-		self.learning_rate = learning_rate
-		self.user_bias = np.zeros(self.n_users)
-		self.recipe_bias = np.zeros(self.n_recipes)
-		self.global_bias = np.mean(self.ratings_data[np.where(self.ratings_data != 0)])
-		self.partial_train(n_iter)
-	
-	def partial_train(self, n_iter):
-		"""
-		Assumes all learned matrices are initialized and performs n_iter iterations
-		of stochastic gradient descent.
-		"""
-		for i in range(n_iter):
-			if i % 10 == 0 and self.verbose:
-				print('\tcurrent iteration: {}'.format(i))
-			self.training_indices = np.arange(self.n_samples)
-			np.random.shuffle(self.training_indices)
-			self.sgd()
+		# Initialize learned matrices
+		torch.nn.init.xavier_uniform_(self.user_hidden.weight)
+		torch.nn.init.xavier_uniform_(self.hidden_feature.weight)
+		self.user_biases.weight.data.fill_(0.)
+		self.recipe_biases.weight.data.fill_(0.)
 
-	def sgd(self):
-		"""
-		Perform stochastic gradient descent
-		"""
-		for index in self.training_indices:
-			u = self.ratings_users[index]
-			r = self.ratings_recipes[index]
-			prediction = self.predict(u, r)
-			e = error(u,r)
-			self.hidden_feature += self.learning_rate * \
-				sum([self.error(u,x) * np.outer(self.user_hidden, self.recipe_feature[x]) for x in range(n_recipes)])
-			self.recipe_bias[r] += self.learning_rate * (e - self.reg_term * self.recipe_bias[r])
-			self.user_bias[u] += self.learning_rate * (e - self.reg_term * self.user_bias[u])
-			self.user_hidden[u] += self.learning_rate * \
-				sum([self.error(u,x) * self.hidden_feature.dot(self.recipe_feature[x]) - self.reg_term * self.user_hidden[u] for x in range(n_recipes)])
-	
-	def error(self, u, r):
-		return self.ratings_data[u, r] - predict(u, r)
+		# Calculate the mean of the ratings data
+		self.global_bias = torch.FloatTensor([np.mean(
+			self.ratings_data[np.where(self.ratings_data != 0)]
+		)]).to(device)
 
-	def predict_all(self):
-		predictions = np.zeros((n_users, n_recipes))
-		for u in xrange(n_users):
-			for r in xrange(n_recipes):
-				predictions[u, r] = self.predict(u, r)
-		return predictions
+		if self.verbose:
+			print("Initializing ctrmf")
+			print("==================")
+			print(f"n_users: {self.n_users}")
+			print(f"n_recipes: {self.n_recipes}")
+			print(f"recipe_feature.shape: {recipe_feature.shape}")
+			print(f"n_features: {self.n_features}")
+			print(f"n_hidden: {self.n_hidden}")
+			print(f"user_hidden.shape: ({self.user_hidden.num_embeddings},{self.user_hidden.embedding_dim})")
+			print(f"hidden_feature.shape: {self.hidden_feature.weight.shape}")
+			print('\n')
 
-	def predict(self, u, r):
-		prediction = self.global_bias + self.user_bias[u] + self.recipe_bias[r]
-		prediction += self.user_hidden[u,:].dot(self.hidden_feature).dot(self.recipe_feature[r,:])
-		return prediction
-
-	def calculate_learning_curve(self, iter_array, test):
-		"""
-
-		"""
-		iter_array.sort()
-		self.train_mse = []
-		self.test_mse = []
-		iter_diff = 0
-		for (i, n_iter) in enumerate(iter_array):
-			if self.verbose:
-				print("Iteration:", n_iter)
-			if i == 0:
-				self.train(n_iter)
-			else:
-				self.partial_train(n_iter - iter_diff)
-
-			predictions = self.predict_all()
-
-			self.train_mse += [get_mse(predictions, self.ratings_data)]
-			self.test_mse += [get_mse(predictions, test)]
-			if self.verbose:
-				print("Train mse:", self.train_mse[-1])
-				print("Test mse:", self.test_mse[-1])
-			iter_diff = n_iter
-		return train_mse, test_mse
-
-
-R = get_recipe_feature_map()
-A = get_user_rating_matrix()
-A_train, A_test = split_to_train_test(A, 0.2)
-
-CTRMF = ctrmf(A_train, R, verbose=True, reg_term=0.01)
-
-CTRMF.train(learning_rate=0.001)
+	def forward(self, user, recipe):
+		pred = torch.matmul(self.user_hidden(user), self.hidden_feature.weight)
+		pred = torch.matmul(pred, self.recipe_feature[recipe].T)
+		pred += self.user_biases(user) + self.recipe_biases(recipe) + self.global_bias
+		return pred

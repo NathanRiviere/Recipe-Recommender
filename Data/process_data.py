@@ -238,14 +238,14 @@ def condense_users_and_recipes():
                 user_rating_amt[user_id] = 1
         
         # Gets 10000 most active users
-        user_interaction_count = sorted(user_rating_amt.items(), key=lambda x: x[1] ,reverse=True)[:10000]
+        user_interaction_count = sorted(user_rating_amt.items(), key=lambda x: x[1] ,reverse=True)[:1000]
         most_active_users = [user[0] for user in user_interaction_count]
 
         csvfile.seek(0)
         reader = csv.reader(csvfile)
         column_headers = next(reader)
 
-        # Write all user-recipe interactions for every recipe a user in the top 10000 most active has rated
+        # Write all user-recipe interactions for every recipe a user in the top 1000 most active has rated
         with open(debug_prefix + 'datasets/condensed-data_interaction.csv', 'w', newline='') as condensed_csvfile:
             count = 0
             for interaction in reader:
@@ -612,8 +612,8 @@ def run_tests():
     return 
 
 ###########################################    ENTRY POINTS   #####################################################
-condense = False
-create_matrices = False
+condense = True
+create_matrices = True
 runtest = True
 test_data = False
 data = debug_prefix+'datasets/test_data.csv' if test_data else debug_prefix+'datasets/core-data_recipe.csv'

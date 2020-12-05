@@ -1,45 +1,105 @@
+leek
+garlic
+chives
+pineapple
+dill
+horseradish
+tarragon
+asparagus
+cauliflower
+broccoli
+capers
+lime
+lemon
+coriander
+cucumber
+cumin
+turmeric
+lemon grass
+cardamom
+barley
+sweet potato
+lettuce
+lentils
 apple
+mango
+nutmeg
+olives
+rice
+avocado
+parsley
+peach
+rosemary
+eggplant
+potato
+spinach
+cloves
+vanilla
+corn
+ginger
+banana
+shallot
+carrot
+beer
+pasta
+allspice
+butternut squash
+coconut
+kale
+okra
+quinoa
 turkey
 beef
+wild rice
+shrimp
+cinnamon
+walnut
+apple cider
 cheese
 eggs
+yogurt
 vodka
 gin
 honey
 vinegar
 rum
+sherry
+cake
+sauce
 salt
 butter
+cream
+sugar
 sausage
 mustard
+curry powder
+lard
+cocoa powder
 buttermilk
+soy sauce
+processed cheese
+salad
+soy milk
+couscous
 ketchup
 cooking oil
+shortening
 molasses
+evaporated milk
+flour
+wheat bread
 margarine
-mushrooms
-wine
-squash
-zucchini
-cherries
-pumpkin
 cabbage
+mushrooms
+romaine lettuce
+cherries
 sauerkraut
-tomato
-tomatoes
-apples
-bacon
-italian seasoning
-lime
-cilantro
 granny smith apples
+apples
 onion
 caraway seeds
-apple cider
 brown sugar
-sugar
 garlic powder
-garlic
 black pepper
 pepper
 boneless pork loin roast
@@ -47,12 +107,10 @@ pork
 chicken wings
 chicken
 sprigs rosemary
-rosemary
 head garlic
 olive oil
 oil
 lemon pepper
-lemon
 seasoned salt
 bread
 basil pesto
@@ -61,35 +119,33 @@ basil
 bell pepper
 monterey jack cheese
 potatoes
-sauce
+bacon
 heavy whipping cream
 whipping cream
-cream
 parmesan cheese
 crust
 water
 active yeast
 vegetable oil
 all purpose flour
-flour
 mozzarella cheese
 skinless boneless chicken breast
 boneless chicken breast
 chicken breast
+tomatoes
 salsa
 black beans
 beans
 pinto beans
 kernel corn
-corn
 taco seasoning
+cilantro
 chile pepper
-cumin
 cream cheese
 corned beef
 thinly
 lean turkey
-parsley
+tomato
 egg white
 egg
 oregano
@@ -103,22 +159,20 @@ mayonnaise
 lemon juiced
 hot pepper sauce tabasco
 hot pepper sauce
-romaine lettuce
-lettuce
 margarine softened
 lean beef
+zucchini
 extra virgin olive oil
 white onion
 salt freshly black pepper
 freshly black pepper
-spinach
 balsamic vinegar
 cucumbers
 grape tomatoes
 onions
 garlic cloves
-cloves
 tomato sauce
+wine
 chili powder
 kidney beans
 condensed cream mushroom soup
@@ -133,9 +187,6 @@ salt pepper
 sour cream
 envelope onion soup mix
 onion soup mix
-dill
-wheat bread
-avocado
 tomato paste
 carrots
 celery
@@ -144,13 +195,9 @@ paprika
 white pepper
 beef stew meat
 rice vinegar
-rice
-soy sauce
-broccoli
 celery seed
 chicken broth
 linguine pasta
-pasta
 cajun seasoning
 heavy cream
 rotini pasta
@@ -158,13 +205,12 @@ dressing
 sweet onion vidalia
 sweet onion
 worcestershire sauce
+italian seasoning
 onion powder
-nutmeg
 barbeque sauce
 apple cider vinegar
 cider vinegar
 hamburger buns
-barley
 bay leaf
 juice
 shallots
@@ -174,21 +220,14 @@ long grain white rice
 white rice
 hot sauce
 italian sausage
-shrimp
-carrot
 ham
 fettuccine pasta
-coriander
-ginger
 chicken bouillon
-cardamom
 cornstarch
 lamb
 button mushrooms
-chives
 prosciutto
 finely
-olives
 dijon mustard
 refried beans
 flour tortillas
@@ -201,14 +240,10 @@ bell peppers
 pork tenderloin
 baking potatoes
 skinless boneless chicken thighs
-cauliflower
-curry powder
 coconut milk
-coconut
 peas
 pasta sauce
 kosher salt
-turmeric
 cayenne pepper
 peanut butter
 packed brown sugar
@@ -220,7 +255,6 @@ tomatoes chile peppers
 chile peppers
 processed cheese food velveeta
 processed cheese food
-processed cheese
 half half cream
 half half
 pint heavy cream
@@ -243,19 +277,17 @@ toasted sesame oil
 sesame oil
 quart water
 black peppercorns
+squash
 head cabbage
-asparagus
 sun tomatoes
 artichoke hearts
 bone chicken breast
 white wine
-wild rice
 snow peas
 tomatoes juice
 orzo pasta
 spaghetti
 egg yolks
-potato
 basmati rice
 pine nuts
 lemon juice
@@ -287,7 +319,6 @@ macaroni
 lasagna noodles
 extra lean beef
 light cream
-cinnamon
 cooking spray
 oil frying
 corn tortillas
@@ -296,7 +327,6 @@ unsalted butter
 lime zest
 limes juiced
 fish sauce
-lemon grass
 dijon style mustard
 toasted sesame seeds
 sesame seeds
@@ -308,7 +338,6 @@ apricot preserves
 cranberries
 slivered almonds
 almonds
-salad
 caraway seed
 apple juice
 hot water
@@ -316,10 +345,8 @@ ricotta cheese
 apple cored
 black olives
 flank steak
-sherry
 marinara sauce
 stewed tomatoes
-beer
 bulk italian sausage
 skinless boneless chicken breast meat
 buttery round crackers
@@ -330,14 +357,12 @@ boneless skinless chicken breast
 oyster sauce
 cola flavored carbonated beverage
 liquid smoke flavoring
-eggplant
 brown rice
 portobello mushrooms
 venison
 coarsely black pepper
 egg noodles
 sprigs parsley
-lentils
 boneless skinless chicken breasts
 chili sauce
 arugula
@@ -355,15 +380,12 @@ pepperoni sausage
 pepperoni
 curry paste
 chicken stock
-pineapple
 glaze
 light soy sauce
 pimento stuffed olives
 peanut oil
-shallot
 garam masala
 plain yogurt
-yogurt
 tomato puree
 boneless skinless chicken thighs
 roasted peppers
@@ -381,13 +403,9 @@ black eyed peas
 cherry tomatoes
 vegetable broth
 cannellini beans
-kale
-mango
-allspice
 sweet potatoes
 dark brown sugar
 gorgonzola cheese
-horseradish
 bite size
 chinese five spice powder
 baking powder
@@ -401,8 +419,6 @@ sweetened cranberries
 lettuce leaves
 pecan
 water chestnuts
-shortening
-evaporated milk
 cream chicken soup
 pork spareribs
 basil leaves
@@ -436,7 +452,6 @@ flat leaf parsley
 feta cheese
 lime wedges
 mint
-sweet potato
 chicken bouillon granules
 tortilla chips
 corn oil
@@ -453,7 +468,6 @@ french fried onions
 condensed cream celery soup
 rice wine vinegar
 finely onion
-tarragon
 sriracha sauce
 bean sprouts
 quick cooking oats
@@ -476,7 +490,6 @@ chicken meat
 mandarin oranges
 provolone cheese
 mild cheddar cheese
-banana
 rice noodles
 peanuts
 cashews
@@ -518,22 +531,17 @@ water divided
 jasmine rice
 smoked paprika
 unsweetened cocoa powder
-cocoa powder
 cornmeal
 pound whole chicken
-peach
 finely celery
 tequila
 seashell pasta
 creamy salad dressing miracle whip
 long grain rice
-lard
 clove garlic
 fennel seed
 chorizo sausage
-butternut squash
 pears
-couscous
 italian style tomatoes
 philadelphia cream cheese softened
 panko bread crumbs
@@ -541,7 +549,7 @@ italian parsley
 poppy seeds
 andouille sausage
 pumpkin puree
-capers
+pumpkin
 lemon wedges
 white beans
 portobello mushroom caps
@@ -549,7 +557,6 @@ sunflower seeds
 saltine crackers
 finely parsley
 packed light brown sugar
-cucumber
 white bread
 unsweetened applesauce
 goat cheese
@@ -563,7 +570,6 @@ onion flakes
 instant coffee granules
 chunky salsa
 farfalle bow tie pasta
-leek
 quart oil frying
 bay seasoning
 granulated sugar
@@ -586,7 +592,6 @@ mint leaves
 english cucumber
 pint cherry tomatoes
 milk powder
-quinoa
 potato flakes
 tomatoes seeded
 strawberries
@@ -605,7 +610,6 @@ sea scallops
 almond extract
 extract
 vanilla yogurt
-vanilla
 firmly packed brown sugar
 leaves basil
 toasted almonds
@@ -663,18 +667,15 @@ mixed salad greens
 almond flour
 split peas
 self rising flour
-walnut
 rolled oats
 sweetened condensed milk
 plain bread crumbs
 crabmeat
 finely cilantro
-okra
 peaches
 low fat milk
 strong brewed coffee
 frosting
-soy milk
 creme fraiche
 recipe pastry single crust pie
 finely pecans
@@ -682,7 +683,6 @@ salmon fillet
 salmon
 unsweetened coconut
 cake mix
-cake
 bread flour
 unbaked pie crust
 arborio rice
