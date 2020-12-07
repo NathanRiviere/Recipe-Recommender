@@ -5,6 +5,7 @@ from sklearn.metrics import mean_squared_error, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch
 sns.set()
 
 def get_user_rating_matrix(path='../Data/generated-results/user-rating_matrix.npy'):
@@ -60,3 +61,7 @@ def split_to_train_test(user_ratings, recipe_feature, test_percentage):
 	rf_train = recipe_feature[:-test_column_count, :]
 	rf_test = recipe_feature[-test_column_count:, :]
 	return ur_train, ur_test, rf_train, rf_test
+
+def load_model(filepath, device):
+    f = open(filepath, 'rb')
+    return torch.load(f, map_location=device)
