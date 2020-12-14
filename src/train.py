@@ -19,6 +19,9 @@ ap.add_argument("-e", "--epochs", type=int, default=25,
 				help="# of epochs to train our network for")
 ap.add_argument("-p", "--plot", type=str, default="plot.png",
 				help="path to output loss/accuracy plot")
+ap.add_argument("-s", "--save", action="store_true", \
+            help="add flag if you want to save the model after training")
+
 args = vars(ap.parse_args())
 
 # Set batch size
@@ -32,10 +35,10 @@ class RatingDataset(Dataset):
 	def __init__(self, user_ratings):
 		self.user_ratings = user_ratings
 		self.row_indices, self.col_indices = user_ratings.nonzero()
-	
+
 	def __len__(self):
 		return len(self.row_indices)
-	
+
 	def __getitem__(self, idx):
 		row = self.row_indices[idx]
 		col = self.col_indices[idx]
@@ -124,6 +127,8 @@ for epoch in range(args['epochs']):
 		test_mse[-1]
 	))
 
-
 print('Finished training!')
 plot_learning_curve_2(list(range(args['epochs'])), train_mse, test_mse, args['plot'])
+
+if args['save'] is True:
+    model.save()
