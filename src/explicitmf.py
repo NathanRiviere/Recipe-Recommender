@@ -158,12 +158,12 @@ class ExplicitMF():
 				print('Test mse: ' + str(self.test_mse[-1]))
 			iter_diff = n_iter
 
-A = get_user_rating_matrix()
-A = A[:1000]
-train, test = split_to_train_test(A, 0.2)
-print(train.shape)
-MF_SGD = ExplicitMF(train, 40, verbose=True)
-iter_array = list(range(1,3))
-MF_SGD.calculate_learning_curve(iter_array, test, learning_rate=0.001)
-plot_learning_curve(iter_array, MF_SGD)
-
+if __name__ == '__main__':
+    A = get_user_rating_matrix()
+    R = get_recipe_feature_map()
+    train, test, ignore, ignoreme = split_to_train_test(A, R, 0.2)
+    MF_SGD = ExplicitMF(train, 80, verbose=True)
+    iter_array = list(range(1,10))
+    MF_SGD.calculate_learning_curve(iter_array, test, learning_rate=0.001)
+    plot_learning_curve(iter_array, MF_SGD)
+    pickle.dump(MF_SGD, open('../models/explicitmodel.pkl', 'wb'))
