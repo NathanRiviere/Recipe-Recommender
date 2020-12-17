@@ -5,7 +5,15 @@ from sklearn.metrics import mean_squared_error, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch
+import ctrmf
 sns.set()
+
+def get_experiment_user_rating_matrix(path='../Data/generated-results/test_user-rating_matrix.npy'):
+	return np.load(path)
+
+def get_experiment_recipe_feature_map(path="../Data/generated-results/test_recipe-feature_map.npy"):
+    return np.load(path)
 
 def get_user_rating_matrix(path='../Data/generated-results/user-rating_matrix.npy'):
 	return np.load(path)
@@ -22,6 +30,10 @@ def get_index_maps(path='../Data/generated-results/index_maps.pickle'):
 	# recipes dict: recipe_id -> index in recipe_feature_map
 	recipes = bundle.recipe_index_map
 	return users, recipes
+
+def ingredient_to_index(path='../Data/generated-results/ingredient_to_index.pickle'):
+    f = open(path, 'rb')
+    return pickle.load(f)
 
 def get_mse(pred, actual):
 	# Ignore nonzero terms.
@@ -60,3 +72,11 @@ def split_to_train_test(user_ratings, recipe_feature, test_percentage):
 	rf_train = recipe_feature[:-test_column_count, :]
 	rf_test = recipe_feature[-test_column_count:, :]
 	return ur_train, ur_test, rf_train, rf_test
+
+def load_model(model_container, filepath, device):
+    model_container.load_state_dict(torch.load(filepath))
+
+def save_model(model, filepath):
+    f = open(filepath, 'wb')
+    torch.save(model.state_dict(), filepath)
+    f.close()
