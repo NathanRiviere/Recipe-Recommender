@@ -1,14 +1,6 @@
-# Recipe-Recommender
+# Recipe Recommender
+This project seeks to improve the accuracy of standard Matrix Factorization by introducing a content-based approach in synthesis with collaborative filtering. This idea is based off the paper [A Content-Based Matrix Factorization Model for Recipe Recommendation](https://link.springer.com/chapter/10.1007/978-3-319-06605-9_46).
 
-# TODO
-## Data processing
-### 1) Create Features
-### 2) Reduce Ingredients
-### 3) Build feature-recipe mapping matrix
-### 4) Choose users
-## Learning
-### 1) Implement Gradient descent functions
-## Results
-### 1) Compare algorithm to standard matrix factorization
-### 2) Compare to popular choice metric
-### 3) User data
+Pure collaborative filtering models the decision process of users by learning the rating patterns of similar users. This, however, is an oversimplification of the user's decision process, and additional recipe metadata can be exploited for further accuracy. In this project,  we have trained our model from the [foodRecSys-V1 kaggle dataset](https://www.kaggle.com/elisaxxygao/foodrecsysv1), which is constructed from 52,821 recipes and 27 categories from allrecipes.com, posted between 2000 and 2018. We use recipe features to further increase the accuracy of the model, currently constituting of various recipe ingredients. This can be extended to include other metadata, such as preparation time, typical occasion for the food, dietary restrictions, etc...
+
+Training the model simply requires running the file `cs486_recipe_recommender_ctrmf.ipynb`. Comparing our model with standard Matrix Factorization, we have achieved an RMSE of 0.814 compared with 1.416 for Matrix Factorization, using a dimension of 80 for the latent space of both models. (_TODO: Run a grid search on the latent space and learning rate on both models_).
